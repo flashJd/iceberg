@@ -40,6 +40,7 @@ final class TableScanContext {
   private final ImmutableMap<String, String> options;
   private final Long fromSnapshotId;
   private final Long toSnapshotId;
+  private final boolean streaming;
 
   TableScanContext() {
     this.snapshotId = null;
@@ -52,12 +53,13 @@ final class TableScanContext {
     this.options = ImmutableMap.of();
     this.fromSnapshotId = null;
     this.toSnapshotId = null;
+    this.streaming = false;
   }
 
   private TableScanContext(Long snapshotId, Expression rowFilter, boolean ignoreResiduals,
                            boolean caseSensitive, boolean colStats, Schema projectedSchema,
                            Collection<String> selectedColumns, ImmutableMap<String, String> options,
-                           Long fromSnapshotId, Long toSnapshotId) {
+                           Long fromSnapshotId, Long toSnapshotId, boolean isStreaming) {
     this.snapshotId = snapshotId;
     this.rowFilter = rowFilter;
     this.ignoreResiduals = ignoreResiduals;
@@ -68,6 +70,7 @@ final class TableScanContext {
     this.options = options;
     this.fromSnapshotId = fromSnapshotId;
     this.toSnapshotId = toSnapshotId;
+    this.streaming = isStreaming;
   }
 
   Long snapshotId() {
@@ -76,7 +79,7 @@ final class TableScanContext {
 
   TableScanContext useSnapshotId(Long scanSnapshotId) {
     return new TableScanContext(scanSnapshotId, rowFilter, ignoreResiduals,
-        caseSensitive, colStats, projectedSchema, selectedColumns, options, fromSnapshotId, toSnapshotId);
+        caseSensitive, colStats, projectedSchema, selectedColumns, options, fromSnapshotId, toSnapshotId, streaming);
   }
 
   Expression rowFilter() {
@@ -85,7 +88,7 @@ final class TableScanContext {
 
   TableScanContext filterRows(Expression filter) {
     return new TableScanContext(snapshotId, filter, ignoreResiduals,
-        caseSensitive, colStats, projectedSchema, selectedColumns, options, fromSnapshotId, toSnapshotId);
+        caseSensitive, colStats, projectedSchema, selectedColumns, options, fromSnapshotId, toSnapshotId, streaming);
   }
 
   boolean ignoreResiduals() {
@@ -94,7 +97,7 @@ final class TableScanContext {
 
   TableScanContext ignoreResiduals(boolean shouldIgnoreResiduals) {
     return new TableScanContext(snapshotId, rowFilter, shouldIgnoreResiduals,
-        caseSensitive, colStats, projectedSchema, selectedColumns, options, fromSnapshotId, toSnapshotId);
+        caseSensitive, colStats, projectedSchema, selectedColumns, options, fromSnapshotId, toSnapshotId, streaming);
   }
 
   boolean caseSensitive() {
@@ -103,7 +106,17 @@ final class TableScanContext {
 
   TableScanContext setCaseSensitive(boolean isCaseSensitive) {
     return new TableScanContext(snapshotId, rowFilter, ignoreResiduals,
-        isCaseSensitive, colStats, projectedSchema, selectedColumns, options, fromSnapshotId, toSnapshotId);
+        isCaseSensitive, colStats, projectedSchema, selectedColumns, options, fromSnapshotId, toSnapshotId, streaming);
+  }
+
+  boolean streaming() {
+    return streaming;
+  }
+
+  TableScanContext setStreaming(boolean isStreaming) {
+    return new TableScanContext(snapshotId, rowFilter, ignoreResiduals,
+            caseSensitive, colStats, projectedSchema, selectedColumns, options, fromSnapshotId, toSnapshotId,
+            isStreaming);
   }
 
   boolean returnColumnStats() {
@@ -112,7 +125,8 @@ final class TableScanContext {
 
   TableScanContext shouldReturnColumnStats(boolean returnColumnStats) {
     return new TableScanContext(snapshotId, rowFilter, ignoreResiduals,
-        caseSensitive, returnColumnStats, projectedSchema, selectedColumns, options, fromSnapshotId, toSnapshotId);
+        caseSensitive, returnColumnStats, projectedSchema, selectedColumns, options, fromSnapshotId, toSnapshotId,
+            streaming);
   }
 
   Collection<String> selectedColumns() {
@@ -122,7 +136,7 @@ final class TableScanContext {
   TableScanContext selectColumns(Collection<String> columns) {
     Preconditions.checkState(projectedSchema == null, "Cannot select columns when projection schema is set");
     return new TableScanContext(snapshotId, rowFilter, ignoreResiduals,
-        caseSensitive, colStats, null, columns, options, fromSnapshotId, toSnapshotId);
+        caseSensitive, colStats, null, columns, options, fromSnapshotId, toSnapshotId, streaming);
   }
 
   Schema projectedSchema() {
@@ -132,7 +146,7 @@ final class TableScanContext {
   TableScanContext project(Schema schema) {
     Preconditions.checkState(selectedColumns == null, "Cannot set projection schema when columns are selected");
     return new TableScanContext(snapshotId, rowFilter, ignoreResiduals,
-        caseSensitive, colStats, schema, null, options, fromSnapshotId, toSnapshotId);
+        caseSensitive, colStats, schema, null, options, fromSnapshotId, toSnapshotId, streaming);
   }
 
   Map<String, String> options() {
@@ -144,7 +158,8 @@ final class TableScanContext {
     builder.putAll(options);
     builder.put(property, value);
     return new TableScanContext(snapshotId, rowFilter, ignoreResiduals,
-        caseSensitive, colStats, projectedSchema, selectedColumns, builder.build(), fromSnapshotId, toSnapshotId);
+        caseSensitive, colStats, projectedSchema, selectedColumns, builder.build(), fromSnapshotId, toSnapshotId,
+            streaming);
   }
 
   Long fromSnapshotId() {
@@ -153,7 +168,7 @@ final class TableScanContext {
 
   TableScanContext fromSnapshotId(long id) {
     return new TableScanContext(snapshotId, rowFilter, ignoreResiduals,
-        caseSensitive, colStats, projectedSchema, selectedColumns, options, id, toSnapshotId);
+        caseSensitive, colStats, projectedSchema, selectedColumns, options, id, toSnapshotId, streaming);
   }
 
   Long toSnapshotId() {
@@ -162,6 +177,6 @@ final class TableScanContext {
 
   TableScanContext toSnapshotId(long id) {
     return new TableScanContext(snapshotId, rowFilter, ignoreResiduals,
-        caseSensitive, colStats, projectedSchema, selectedColumns, options, fromSnapshotId, id);
+        caseSensitive, colStats, projectedSchema, selectedColumns, options, fromSnapshotId, id, streaming);
   }
 }

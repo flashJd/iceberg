@@ -151,6 +151,12 @@ abstract class BaseTableScan implements TableScan {
   }
 
   @Override
+  public TableScan streaming(boolean streaming) {
+    return newRefinedScan(
+            ops, table, schema, context.setStreaming(streaming));
+  }
+
+  @Override
   public TableScan includeColumnStats() {
     return newRefinedScan(
         ops, table, schema, context.shouldReturnColumnStats(true));
@@ -203,6 +209,7 @@ abstract class BaseTableScan implements TableScan {
   public CloseableIterable<CombinedScanTask> planTasks() {
     CloseableIterable<FileScanTask> fileScanTasks = planFiles();
     CloseableIterable<FileScanTask> splitFiles = TableScanUtil.splitFiles(fileScanTasks, targetSplitSize());
+
     return TableScanUtil.planTasks(splitFiles, targetSplitSize(), splitLookback(), splitOpenFileCost());
   }
 
@@ -237,6 +244,11 @@ abstract class BaseTableScan implements TableScan {
   @Override
   public boolean isCaseSensitive() {
     return context.caseSensitive();
+  }
+
+  @Override
+  public boolean isStreaming() {
+    return context.streaming();
   }
 
   @Override
