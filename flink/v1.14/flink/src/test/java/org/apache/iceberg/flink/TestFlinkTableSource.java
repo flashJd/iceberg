@@ -40,10 +40,14 @@ import org.junit.Test;
 
 public class TestFlinkTableSource extends FlinkTestBase {
 
-  private static final String CATALOG_NAME = "test_catalog";
-  private static final String DATABASE_NAME = "test_db";
-  private static final String TABLE_NAME = "test_table";
-  private final FileFormat format = FileFormat.AVRO;
+  private static final String CATALOG_NAME = "hive_catalog";
+  private static final String DATABASE_NAME = "test1";
+  private static final String TABLE_NAME = "test60";
+  private final FileFormat format = FileFormat.PARQUET;
+//  private static final String CATALOG_NAME = "test_catalog";
+//  private static final String DATABASE_NAME = "test_db";
+//  private static final String TABLE_NAME = "test_table";
+//  private final FileFormat format = FileFormat.AVRO;
   private static String warehouse;
 
   private int scanEventCount = 0;
@@ -76,14 +80,13 @@ public class TestFlinkTableSource extends FlinkTestBase {
 
   @Before
   public void before() {
-    sql("CREATE CATALOG %s WITH ('type'='iceberg', 'catalog-type'='hadoop', 'warehouse'='%s')", CATALOG_NAME,
-        warehouse);
+    sql("CREATE CATALOG %s WITH ('type'='iceberg', 'catalog-type'='hive', 'uri'='thrift://172.16.60.111:9083'," +
+            " 'warehouse'='s3a://iceberg/')", CATALOG_NAME);
     sql("USE CATALOG %s", CATALOG_NAME);
-    sql("CREATE DATABASE %s", DATABASE_NAME);
+    System.out.println(sql("show catalogs"));
+    System.out.println(sql("show databases"));
+//    sql("CREATE DATABASE %s", DATABASE_NAME);
     sql("USE %s", DATABASE_NAME);
-    sql("CREATE TABLE %s (id INT, data VARCHAR,d DOUBLE) WITH ('write.format.default'='%s')", TABLE_NAME,
-        format.name());
-    sql("INSERT INTO %s VALUES (1,'iceberg',10),(2,'b',20),(3,CAST(NULL AS VARCHAR),30)", TABLE_NAME);
 
     this.scanEventCount = 0;
     this.lastScanEvent = null;
@@ -125,6 +128,19 @@ public class TestFlinkTableSource extends FlinkTestBase {
     List<Row> mixedResult = sql(sqlMixed);
     Assert.assertEquals("Should have 1 record", 1, mixedResult.size());
     Assert.assertEquals("Should produce the expected records", Row.of(1, "iceberg", 10.0), mixedResult.get(0));
+  }
+
+  @Test
+  public void testNoFilterPushDown1() {
+//    sql("set execution.type = streaming");
+//    sql("set sql-client.execution.result-mode=changelog");
+//    sql("set table.dynamic-table-options.enabled=true");
+//    sql("set execution.checkpointing.interval=3s");
+    String sql = String.format(
+            "SELECT * FROM %s /*+OPTIONS('streaming'='true', 'monitor-interval'='1s')*/ WHERE id > 1",
+            TABLE_NAME);
+    exec(sql).print();
+    Assert.assertEquals("Should not push down a filter", Expressions.alwaysTrue(), lastScanEvent.filter());
   }
 
   @Test

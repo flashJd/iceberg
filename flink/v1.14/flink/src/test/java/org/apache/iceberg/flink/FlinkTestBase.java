@@ -19,6 +19,7 @@
 
 package org.apache.iceberg.flink;
 
+import java.time.Duration;
 import java.util.List;
 import org.apache.flink.table.api.EnvironmentSettings;
 import org.apache.flink.table.api.TableEnvironment;
@@ -27,6 +28,7 @@ import org.apache.flink.test.util.MiniClusterWithClientResource;
 import org.apache.flink.test.util.TestBaseUtils;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.CloseableIterator;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.iceberg.CatalogUtil;
 import org.apache.iceberg.hive.HiveCatalog;
@@ -53,18 +55,29 @@ public abstract class FlinkTestBase extends TestBaseUtils {
 
   private volatile TableEnvironment tEnv = null;
 
+  private static HiveConf initCustomHiveConf() {
+    HiveConf conf = new HiveConf(new Configuration(), TestHiveMetastore.class);
+    conf.set(HiveConf.ConfVars.METASTOREURIS.varname, "thrift://172.16.60.111:9083");
+    conf.set(HiveConf.ConfVars.METASTOREWAREHOUSE.varname, "s3a://iceberg/");
+    conf.set(HiveConf.ConfVars.METASTORE_TRY_DIRECT_SQL.varname, "false");
+    conf.set(HiveConf.ConfVars.METASTORE_DISALLOW_INCOMPATIBLE_COL_TYPE_CHANGES.varname, "false");
+    conf.set("iceberg.hive.client-pool-size", "2");
+    return conf;
+  }
+
   @BeforeClass
   public static void startMetastore() {
-    FlinkTestBase.metastore = new TestHiveMetastore();
-    metastore.start();
-    FlinkTestBase.hiveConf = metastore.hiveConf();
+//    FlinkTestBase.metastore = new TestHiveMetastore();
+//    metastore.start();
+//    FlinkTestBase.hiveConf = metastore.hiveConf();
+    FlinkTestBase.hiveConf = initCustomHiveConf();
     FlinkTestBase.catalog = (HiveCatalog)
         CatalogUtil.loadCatalog(HiveCatalog.class.getName(), "hive", ImmutableMap.of(), hiveConf);
   }
 
   @AfterClass
   public static void stopMetastore() throws Exception {
-    metastore.stop();
+//    metastore.stop();
     FlinkTestBase.catalog = null;
   }
 
@@ -74,11 +87,20 @@ public abstract class FlinkTestBase extends TestBaseUtils {
         if (tEnv == null) {
           EnvironmentSettings settings = EnvironmentSettings
               .newInstance()
-              .inBatchMode()
+              .useBlinkPlanner()
+              .inStreamingMode()
               .build();
 
           TableEnvironment env = TableEnvironment.create(settings);
           env.getConfig().getConfiguration().set(FlinkConfigOptions.TABLE_EXEC_ICEBERG_INFER_SOURCE_PARALLELISM, false);
+          env.getConfig().getConfiguration().set(org.apache.flink.streaming.api.environment
+                  .ExecutionCheckpointingOptions.CHECKPOINTING_INTERVAL, Duration.ofSeconds(3));
+          env.getConfig().getConfiguration().set(org.apache.flink.table.api.config.TableConfigOptions
+                  .TABLE_DYNAMIC_TABLE_OPTIONS_ENABLED, true);
+          env.getConfig().getConfiguration().setString("akka.ask.timeout", "1h");
+          env.getConfig().getConfiguration().setString("akka.watch.heartbeat.interval", "1h");
+          env.getConfig().getConfiguration().setString("akka.watch.heartbeat.pause", "1h");
+          env.getConfig().getConfiguration().setString("heartbeat.timeout", "18000000");
           tEnv = env;
         }
       }
