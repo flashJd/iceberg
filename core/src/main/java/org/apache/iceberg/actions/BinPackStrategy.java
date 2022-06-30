@@ -234,7 +234,14 @@ public abstract class BinPackStrategy implements RewriteStrategy {
    * small errors in size creating brand-new files.
    */
   protected long splitSize(long totalSizeInBytes) {
-    long estimatedSplitSize = (totalSizeInBytes / numOutputFiles(totalSizeInBytes)) + SPLIT_OVERHEAD;
+    long OutputFileNum = numOutputFiles(totalSizeInBytes);
+    long estimatedSplitSize;
+    if (OutputFileNum > 1) {
+      estimatedSplitSize = (totalSizeInBytes / OutputFileNum) + SPLIT_OVERHEAD;
+    } else {
+      estimatedSplitSize = Math.max(targetFileSize, totalSizeInBytes) + SPLIT_OVERHEAD;
+    }
+
     return Math.min(estimatedSplitSize, writeMaxFileSize());
   }
 

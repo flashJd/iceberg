@@ -688,7 +688,7 @@ abstract class MergingSnapshotProducer<ThisT> extends SnapshotProducer<ThisT> {
     // filter any existing manifests
     List<ManifestFile> filtered = filterManager.filterManifests(
         base.schema(), current != null ? current.dataManifests(ops.io()) : null);
-    List<ManifestFile> deleteManifests = current != null ? current.deleteManifests() : null;
+    List<ManifestFile> deleteManifests = current != null ? current.deleteManifests(ops.io()) : null;
     Map<String, Long> minDataSequenceNumbers = filterManager.findMinDataSequenceNumbers(filtered, deleteManifests);
     deleteFilterManager.dropDeleteFilesOlderthan(minDataSequenceNumbers);
     List<ManifestFile> filteredDeletes = deleteFilterManager.filterManifests(base.schema(), deleteManifests);
