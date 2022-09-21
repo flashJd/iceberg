@@ -122,10 +122,6 @@ public class RowDataFileScanTaskReader implements FileScanTaskReader<RowData> {
       iterable = CloseableIterable.transform(iterable, rowDataProjection::wrapDelete);
     }
 
-    for (RowData rowData : iterable) {
-      System.out.println("rrr ----  " + rowData);
-    }
-
     return iterable.iterator();
   }
 
