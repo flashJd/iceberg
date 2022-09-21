@@ -242,4 +242,9 @@ public class RowDataProjection implements RowData {
   public RowData getRow(int pos, int numFields) {
     return (RowData) getValue(pos);
   }
+
+  @Override
+  public String toString() {
+    return rowData.toString();
+  }
 }

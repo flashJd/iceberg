@@ -124,8 +124,7 @@ class DeleteFileIndex {
 
     if (sortedDeletesByPartition != null) {
       for (Pair<long[], DeleteFile[]> val : sortedDeletesByPartition.values()) {
-        matchingDeletes = Stream.concat(matchingDeletes, Arrays.stream(val.second()))
-                .filter(deleteFile -> deleteFile.content().equals(FileContent.EQUALITY_DELETES));
+        matchingDeletes = Stream.concat(matchingDeletes, Arrays.stream(val.second()));
       }
     }
 

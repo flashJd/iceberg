@@ -59,12 +59,20 @@ public class InputFilesDecryptor {
   }
 
   public List<InputFile> getEqDeleteInputFile(FileScanTask task) {
+    return getDeleteInputFiles(task, FileContent.EQUALITY_DELETES);
+  }
+
+  public List<InputFile> getPosDeleteInputFile(FileScanTask task) {
+    return getDeleteInputFiles(task, FileContent.POSITION_DELETES);
+  }
+
+  private List<InputFile> getDeleteInputFiles(FileScanTask task, FileContent content) {
     Preconditions.checkArgument(!task.isDataTask(), "Invalid task type");
     return task.deletes()
-            .stream()
-            .filter(file -> file.content().equals(FileContent.EQUALITY_DELETES))
-            .map(e -> decryptedInputFiles.get(e.path().toString()))
-            .collect(Collectors.toList());
+        .stream()
+        .filter(file -> file.content().equals(content))
+        .map(e -> decryptedInputFiles.get(e.path().toString()))
+        .collect(Collectors.toList());
   }
 
   public InputFile getInputFile(String location) {
